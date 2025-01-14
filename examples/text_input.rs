@@ -1,5 +1,4 @@
-use crossterm::event::KeyCode;
-use sketch::{msg, Msg};
+use sketch::{msg::{self, KeyCode}, Msg};
 
 fn main() -> std::io::Result<()> {
     let model = Model::default();
@@ -30,8 +29,8 @@ impl sketch::Model for Model {
                 KeyCode::Left => self.cursor = self.cursor.saturating_sub(1),
                 KeyCode::Right if self.cursor < self.text.len() - 1 => self.cursor += 1,
                 KeyCode::Enter => {
-                    self.text.push_str("\r\n");
-                    self.cursor += 2
+                    self.text.push('\n');
+                    self.cursor += 1
                 }
                 _ => {}
             }

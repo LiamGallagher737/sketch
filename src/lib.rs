@@ -1,11 +1,8 @@
 use crossterm::{
-    cursor::MoveTo,
-    event::{self, Event},
-    execute,
-    terminal::{
+    cursor::MoveTo, event::{self, Event}, execute, style::Print, terminal::{
         disable_raw_mode, enable_raw_mode, Clear, ClearType, EnterAlternateScreen,
         LeaveAlternateScreen,
-    },
+    }
 };
 use msg::{Focus, Key, Mouse, Quit, Resize};
 use std::{
@@ -64,10 +61,8 @@ impl<M: Model> App<M> {
                 m = out.1;
             }
 
-            let render = self.model.view();
-            execute!(stdout, Clear(ClearType::CurrentLine))?;
-            execute!(stdout, MoveTo(0, 0))?;
-            print!("{render}");
+            let view = self.model.view().replace("\n", "\r\n");
+            execute!(stdout, Clear(ClearType::All), MoveTo(0, 0), Print(&view))?;
             stdout.flush()?;
         }
 
@@ -112,6 +107,7 @@ impl Msg {
     }
 }
 
+/// A trait to allow a type to be used as a [`Msg`].
 pub trait Message: Send {}
 
 fn spawn_crossterm_event_thread(tx: Sender<Msg>) {

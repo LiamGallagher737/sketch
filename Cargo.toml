@@ -9,7 +9,7 @@ paste = ["crossterm/bracketed-paste"]
 
 [dependencies.crossterm]
 version = "0.28.1"
-no-default-features = true
+default-features = false
 features = [
     "events",
     "windows",

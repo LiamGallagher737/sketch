@@ -153,6 +153,11 @@ impl<M: Model> App<M> {
         }
 
         'outer: loop {
+            let view = self.model.view().replace("\n", "\r\n");
+            // TODO: Diff this and last frame and only update what has changed.
+            execute!(stdout, Clear(ClearType::All), MoveTo(0, 0), Print(&view))?;
+            stdout.flush()?;
+
             let mut m = Some(self.message_receiver.recv().unwrap());
             while let Some(msg) = m {
                 if msg.is::<Quit>() {
@@ -163,11 +168,6 @@ impl<M: Model> App<M> {
                 self.model = out.0;
                 m = out.1;
             }
-
-            let view = self.model.view().replace("\n", "\r\n");
-            // TODO: Diff this and last frame and only update what has changed.
-            execute!(stdout, Clear(ClearType::All), MoveTo(0, 0), Print(&view))?;
-            stdout.flush()?;
         }
 
         disable_raw_mode()?;

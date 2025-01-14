@@ -1,3 +1,96 @@
+//! Sketch is a crate for building TUI applications inspired by [bubbletea] from the golang
+//! ecosystem.
+//!
+//! ## Example
+//!
+//! Here is a simple counter app.
+//!
+//! ```no_run
+//! use sketch::*;
+//!
+//! const COUNTER_STYLE: Style = Style::new().yellow().bold();
+//!
+//! fn main() -> std::io::Result<()> {
+//!     let model = Counter::default();
+//!     App::new(model).run()
+//! }
+//!
+//! #[derive(Default)]
+//! struct Counter {
+//!     count: usize,
+//! }
+//!
+//! impl Model for Counter {
+//!     fn update(mut self, msg: &Msg) -> (Self, Option<Msg>) {
+//!         if let Some(key) = msg.cast::<Key>() {
+//!             match key.code {
+//!                 KeyCode::Enter => self.count += 1,
+//!                 KeyCode::Char('q') => return (self, Some(Msg::new(Quit))),
+//!                 _ => {}
+//!             }
+//!         }
+//!
+//!         (self, None)
+//!     }
+//!
+//!     fn view(&self) -> String {
+//!         COUNTER_STYLE.render(self.count.to_string())
+//!     }
+//! }
+//!
+//! ```
+//!
+//! ## [`Model::update`]
+//!
+//! Whenever something like input happens your model's update function is run with a [`Msg`]. This
+//! holds on to the underlying type implementing [`Message`]. By doing it this way you can add your
+//! own custom messages and so can libraries providing widgets and other helpers.
+//!
+//! The point of this function is to use this [`Msg`] to create a new model to be used for the next
+//! render. The function can also optionally return another [`Msg`]. If another message is returned
+//! it will be given to [`Model::update`] and continue to run them until a message is not returned.
+//! The app will render once all returned messages are run.
+//!
+//! ## [`Model::view`]
+//!
+//! This is where you render your model into a string to be displayed to the user. To make your ap
+//! look nice you can use the [`Style`] struct to render text with different attributes.
+//!
+//! ## [`Model::startup`]
+//!
+//! This function runs on startup and if a message is returned it will be run as the first message
+//! for [`Model::update`].
+//!
+//! ## Built-in messages
+//!
+//! The following are the built-in messages.
+//!
+//! * [`Quit`]: Send to quit the app.
+//! * [`Key`]: Keyboard input.
+//! * [`Mouse`]: Mouse input.
+//! * [`Focus`]: Focus changes.
+//! * [`Paste`]: Clipboard pastes. Only if the `paste` feature is enabeld.
+//!
+//! ## Custom messages
+//!
+//! Any type that is [`Send`] can be made in to a [`Message`] by implementing it.
+//!
+//! ```
+//! # use sketch::*;
+//! struct MyMessage {
+//!     something: i32,
+//! }
+//! impl Message for MyMessage {}
+//!
+//! ```
+//!
+//! You can then send them using a [`Sender<Msg>`] from [`App::sender`].
+//!
+//! For example if you need to make and HTTP request you could spawn a thread to complete the
+//! request and then send a message using the sender.
+//!
+//! [bubbletea]: https://github.com/charmbracelet/bubbletea
+
 #![deny(missing_docs)]
 #![expect(missing_docs)]
 

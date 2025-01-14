@@ -1,0 +1,16 @@
+[package]
+name = "sketch"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["paste"]
+paste = ["crossterm/bracketed-paste"]
+
+[dependencies.crossterm]
+version = "0.28.1"
+no-default-features = true
+features = [
+    "events",
+    "windows",
+]

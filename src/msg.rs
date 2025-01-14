@@ -6,6 +6,7 @@ use crossterm::event::{
 
 pub use crossterm::event::KeyCode;
 
+/// A type containing a [`Message`] implementing type.
 pub struct Msg {
     msg: Box<dyn Any + Send>,
 }

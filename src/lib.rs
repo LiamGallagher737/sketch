@@ -1,3 +1,6 @@
+#![deny(missing_docs)]
+#![expect(missing_docs)]
+
 use crossterm::{
     cursor::MoveTo,
     event::{self, Event},
@@ -19,6 +22,7 @@ pub use style::*;
 mod msg;
 mod style;
 
+/// A type to hold on to and run your [`Model`].
 pub struct App<M: Model> {
     model: M,
     message_sender: Sender<Msg>,
@@ -80,6 +84,7 @@ impl<M: Model> App<M> {
     }
 }
 
+/// A trait to turn your data in to something [`App`] can run.
 pub trait Model: Sized {
     /// Where any initial startup commands are sent.
     fn startup(&self) -> Option<Msg> {

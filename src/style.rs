@@ -18,15 +18,14 @@ pub struct Style {
     italic: bool,
     underline: bool,
     underline_color: Option<Color>,
-    blink: BlinkSpeed,
+    blink: Option<BlinkSpeed>,
     reverse: bool,
     crossed_out: bool,
 }
 
-#[derive(Debug, Default, Clone)]
+/// The speed of text blinking for [`Style::blink`].
+#[derive(Debug, Clone)]
 pub enum BlinkSpeed {
-    #[default]
-    None,
     Slow,
     Rapid,
 }
@@ -73,7 +72,7 @@ impl Style {
             italic: false,
             underline: false,
             underline_color: None,
-            blink: BlinkSpeed::None,
+            blink: None,
             reverse: false,
             crossed_out: false,
         }
@@ -98,13 +97,21 @@ impl Style {
         self
     }
 
+    /// Enable blinking and set its speed.
+    ///
+    /// See [`Style::slow_blink`] and [`Style::rapid_blink`] for shorthands.
+    pub const fn blink(mut self, blink: BlinkSpeed) -> Self {
+        self.blink = Some(blink);
+        self
+    }
+
     // Modifiers
     style_method! { bold, bold, true, "Make the text bold." }
     style_method! { dim, dim, true, "Make the text dim." }
     style_method! { italic, italic, true, "Make the text italic." }
     style_method! { underline, underline, true, "Underline the text." }
-    style_method! { slow_blink, blink, BlinkSpeed::Slow, "Blink the tex slowly." }
-    style_method! { rapid_blink, blink, BlinkSpeed::Rapid, "Blick the text rapidly." }
+    style_method! { slow_blink, blink, Some(BlinkSpeed::Slow), "Blink the text slowly." }
+    style_method! { rapid_blink, blink, Some(BlinkSpeed::Rapid), "Blick the text rapidly." }
     style_method! { reverse, reverse, true, "Spawn the text and background colors." }
     style_method! { crossed_out, crossed_out, true, "Cross the text." }
 
@@ -178,10 +185,11 @@ impl Style {
         if self.underline {
             result.push_str("\x1b[4m");
         }
-        match self.blink {
-            BlinkSpeed::Slow => result.push_str("\x1b[5m"),
-            BlinkSpeed::Rapid => result.push_str("\x1b[6m"),
-            BlinkSpeed::None => {}
+        if let Some(speed) = &self.blink {
+            match speed {
+                BlinkSpeed::Slow => result.push_str("\x1b[5m"),
+                BlinkSpeed::Rapid => result.push_str("\x1b[6m"),
+            }
         }
         if self.reverse {
             result.push_str("\x1b[7m");

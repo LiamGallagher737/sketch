@@ -1,11 +1,13 @@
-use sketch::{msg::{self, KeyCode}, Msg};
+use sketch::{Key, KeyCode, Msg, Quit, Style};
+
+const TEXT_STYLE: Style = Style::new();
 
 fn main() -> std::io::Result<()> {
     let model = Model::default();
     sketch::App::new(model).run()
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 struct Model {
     text: String,
     cursor: usize,
@@ -13,11 +15,9 @@ struct Model {
 
 impl sketch::Model for Model {
     fn update(mut self, msg: &Msg) -> (Self, Option<Msg>) {
-        if let Some(key) = msg.cast::<msg::Key>() {
+        if let Some(key) = msg.cast::<Key>() {
             match key.code {
-                KeyCode::Char('c') if key.with_control() => {
-                    return (self, Some(Msg::new(msg::Quit)))
-                }
+                KeyCode::Char('c') if key.with_control() => return (self, Some(Msg::new(Quit))),
                 KeyCode::Char(c) => {
                     self.text.push(c);
                     self.cursor += 1;
@@ -40,6 +40,6 @@ impl sketch::Model for Model {
     }
 
     fn view(&self) -> String {
-        self.text.clone()
+        TEXT_STYLE.render(&self.text)
     }
 }

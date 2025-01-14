@@ -1,17 +1,24 @@
 use crossterm::{
-    cursor::MoveTo, event::{self, Event}, execute, style::Print, terminal::{
+    cursor::MoveTo,
+    event::{self, Event},
+    execute,
+    style::Print,
+    terminal::{
         disable_raw_mode, enable_raw_mode, Clear, ClearType, EnterAlternateScreen,
         LeaveAlternateScreen,
-    }
+    },
 };
-use msg::{Focus, Key, Mouse, Quit, Resize};
 use std::{
     any::Any,
     io::{self, Write},
     sync::mpsc::{channel, Receiver, Sender},
 };
 
-pub mod msg;
+pub use msg::*;
+pub use style::*;
+
+mod msg;
+mod style;
 
 pub struct App<M: Model> {
     model: M,
@@ -62,6 +69,7 @@ impl<M: Model> App<M> {
             }
 
             let view = self.model.view().replace("\n", "\r\n");
+            // TODO: Diff this and last frame and only update what has changed.
             execute!(stdout, Clear(ClearType::All), MoveTo(0, 0), Print(&view))?;
             stdout.flush()?;
         }
@@ -73,7 +81,7 @@ impl<M: Model> App<M> {
     }
 }
 
-pub trait Model: Clone + Sized {
+pub trait Model: Sized {
     /// Where any initial startup commands are sent.
     fn startup(&self) -> Option<Msg> {
         None

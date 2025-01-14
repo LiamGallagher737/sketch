@@ -1,5 +1,5 @@
 use crossterm::{
-    cursor::MoveToColumn,
+    cursor::MoveTo,
     event::{self, Event},
     execute,
     terminal::{
@@ -23,6 +23,7 @@ pub struct App<M: Model> {
 }
 
 impl<M: Model> App<M> {
+    /// Create a new [`App`].
     #[must_use = "Creating an app does nothing until you call App::run()"]
     pub fn new(model: M) -> Self {
         let (message_sender, message_receiver) = channel();
@@ -33,42 +34,41 @@ impl<M: Model> App<M> {
         }
     }
 
+    /// Get a copy of the [`Sender`] for sending [`Msg`]s.
+    pub fn sender(&self) -> Sender<Msg> {
+        self.message_sender.clone()
+    }
+
+    /// Run this [`App`] only returning once the [`Quit`] message has been sent.
     pub fn run(mut self) -> std::io::Result<()> {
         set_panic_hook();
         enable_raw_mode()?;
         let mut stdout = io::stdout();
         execute!(stdout, EnterAlternateScreen)?;
 
-        let mut message = self.model.startup();
+        spawn_crossterm_event_thread(self.message_sender.clone());
+
+        if let Some(msg) = self.model.startup() {
+            self.message_sender.send(msg).unwrap();
+        }
+
         'outer: loop {
-            while let Some(msg) = &message {
+            let mut m = Some(self.message_receiver.recv().unwrap());
+            while let Some(msg) = m {
                 if msg.is::<Quit>() {
                     break 'outer;
                 }
 
-                let out = self.model.update(msg);
+                let out = self.model.update(&msg);
                 self.model = out.0;
-                message = out.1;
+                m = out.1;
             }
 
             let render = self.model.view();
             execute!(stdout, Clear(ClearType::CurrentLine))?;
-            execute!(stdout, MoveToColumn(0))?;
+            execute!(stdout, MoveTo(0, 0))?;
             print!("{render}");
             stdout.flush()?;
-
-            message = Some(match event::read()? {
-                Event::FocusGained => Msg::new(Focus::Gained),
-                Event::FocusLost => Msg::new(Focus::Lost),
-                Event::Key(event) => Msg::new(Key::from(event)),
-                Event::Mouse(event) => Msg::new(Mouse::from(event)),
-                Event::Resize(width, height) => Msg::new(Resize { width, height }),
-
-                #[cfg(feature = "paste")]
-                Event::Paste(value) => Msg::new(msg::Paste(value)),
-                #[cfg(not(feature = "paste"))]
-                Event::Paste(_) => continue,
-            });
         }
 
         disable_raw_mode()?;
@@ -92,7 +92,7 @@ pub trait Model: Clone + Sized {
 }
 
 pub struct Msg {
-    msg: Box<dyn Any>,
+    msg: Box<dyn Any + Send>,
 }
 
 impl Msg {
@@ -112,7 +112,26 @@ impl Msg {
     }
 }
 
-pub trait Message {}
+pub trait Message: Send {}
+
+fn spawn_crossterm_event_thread(tx: Sender<Msg>) {
+    std::thread::spawn(move || loop {
+        let msg = match event::read().expect("Failed to read crossterm event") {
+            Event::FocusGained => Msg::new(Focus::Gained),
+            Event::FocusLost => Msg::new(Focus::Lost),
+            Event::Key(event) => Msg::new(Key::from(event)),
+            Event::Mouse(event) => Msg::new(Mouse::from(event)),
+            Event::Resize(width, height) => Msg::new(Resize { width, height }),
+
+            #[cfg(feature = "paste")]
+            Event::Paste(value) => Msg::new(msg::Paste(value)),
+            #[cfg(not(feature = "paste"))]
+            Event::Paste(_) => continue,
+        };
+
+        tx.send(msg).expect("Failed to send on message channel");
+    });
+}
 
 fn set_panic_hook() {
     let hook = std::panic::take_hook();

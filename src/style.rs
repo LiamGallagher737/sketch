@@ -5,7 +5,7 @@ pub use crossterm::style::Color;
 /// Change how the text is displayed to the user.
 ///
 /// ```
-/// # use sketch::style::Style;
+/// # use sketch::Style;
 /// const FOCUS_STYLE: Style = Style::new().red().bold();
 /// let text = FOCUS_STYLE.render("[ Submit]");
 /// ```

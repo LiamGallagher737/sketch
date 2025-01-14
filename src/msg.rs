@@ -1,11 +1,34 @@
-//! Built-in [`Message`] types.
+use std::any::Any;
 
-use crate::Message;
 use crossterm::event::{
     KeyEvent, KeyEventKind, KeyEventState, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
 
 pub use crossterm::event::KeyCode;
+
+pub struct Msg {
+    msg: Box<dyn Any + Send>,
+}
+
+impl Msg {
+    /// Create a new [`Msg`] from a type implementing [`Message`].
+    pub fn new<M: Message + 'static>(msg: M) -> Self {
+        Self { msg: Box::new(msg) }
+    }
+
+    /// Try convert this [`Msg`] to a explicit [`Message`] implementing type.
+    pub fn cast<M: Message + 'static>(&self) -> Option<&M> {
+        self.msg.downcast_ref::<M>()
+    }
+
+    /// Check if this [`Msg`] is a specific [`Message`] implementing type.
+    pub fn is<M: Message + 'static>(&self) -> bool {
+        self.msg.is::<M>()
+    }
+}
+
+/// A trait to allow a type to be used as a [`Msg`].
+pub trait Message: Send {}
 
 macro_rules! matches_method {
     ($method:ident, $field:ident, $value:pat) => {

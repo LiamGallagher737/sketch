@@ -39,7 +39,7 @@ impl<M: Model> App<M> {
         let mut stdout = io::stdout();
         execute!(stdout, EnterAlternateScreen)?;
 
-        let mut message: Option<Msg> = None;
+        let mut message = self.model.startup();
         'outer: loop {
             while let Some(msg) = &message {
                 if msg.is::<Quit>() {
@@ -79,10 +79,8 @@ impl<M: Model> App<M> {
 }
 
 pub trait Model: Clone + Sized {
-    type Command;
-
-    /// Where any initial setup commands are sent.
-    fn init(&self) -> Option<Self::Command> {
+    /// Where any initial startup commands are sent.
+    fn startup(&self) -> Option<Msg> {
         None
     }
 

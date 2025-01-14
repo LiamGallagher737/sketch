@@ -12,11 +12,7 @@ struct Model {
     cursor: usize,
 }
 
-enum Command {}
-
 impl sketch::Model for Model {
-    type Command = Command;
-
     fn update(mut self, msg: &Msg) -> (Self, Option<Msg>) {
         if let Some(key) = msg.cast::<msg::Key>() {
             match key.code {

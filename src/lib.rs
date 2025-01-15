@@ -108,6 +108,7 @@ use std::{
     sync::mpsc::{channel, Receiver, Sender},
 };
 
+pub use crossterm::terminal::size as terminal_size;
 pub use msg::*;
 pub use style::*;
 

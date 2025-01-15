@@ -1,3 +1,4 @@
+use crate::terminal_size;
 use std::fmt::Write;
 
 pub use crossterm::style::Color;
@@ -18,18 +19,31 @@ pub struct Style {
     italic: bool,
     underline: bool,
     underline_color: Option<Color>,
-    blink: Option<BlinkSpeed>,
+    blink: Option<Blink>,
     reverse: bool,
     crossed_out: bool,
+    align: Align,
 }
 
 /// The speed of text blinking for [`Style::blink`].
 #[derive(Debug, Clone)]
-pub enum BlinkSpeed {
+pub enum Blink {
     /// Less than 150 times per minute.
     Slow,
     /// Greater than 150 times per minute.
     Rapid,
+}
+
+/// Alignment options for text.
+#[derive(Debug, Default, Clone)]
+pub enum Align {
+    /// Align text left.
+    #[default]
+    Left,
+    /// Align text center.
+    Center,
+    /// Align text right.
+    Right,
 }
 
 macro_rules! style_method {
@@ -77,6 +91,7 @@ impl Style {
             blink: None,
             reverse: false,
             crossed_out: false,
+            align: Align::Left,
         }
     }
 
@@ -102,18 +117,30 @@ impl Style {
     /// Enable blinking and set its speed.
     ///
     /// See [`Style::slow_blink`] and [`Style::rapid_blink`] for shorthands.
-    pub const fn blink(mut self, blink: BlinkSpeed) -> Self {
+    pub const fn blink(mut self, blink: Blink) -> Self {
         self.blink = Some(blink);
         self
     }
+
+    /// Set the alignment of the text.
+    ///
+    /// See [`Style::left`], [`Style::center`] and [`Style::right`] for shorthands.
+    pub const fn align(mut self, align: Align) -> Self {
+        self.align = align;
+        self
+    }
+
+    style_method! { left, align, Align::Left, "Align the text to the left." }
+    style_method! { center, align, Align::Center, "Align the text in the center." }
+    style_method! { right, align, Align::Right, "Align the text to the right." }
 
     // Modifiers
     style_method! { bold, bold, true, "Make the text bold." }
     style_method! { dim, dim, true, "Make the text dim." }
     style_method! { italic, italic, true, "Make the text italic." }
     style_method! { underline, underline, true, "Underline the text." }
-    style_method! { slow_blink, blink, Some(BlinkSpeed::Slow), "Blink the text slowly." }
-    style_method! { rapid_blink, blink, Some(BlinkSpeed::Rapid), "Blick the text rapidly." }
+    style_method! { slow_blink, blink, Some(Blink::Slow), "Blink the text slowly." }
+    style_method! { rapid_blink, blink, Some(Blink::Rapid), "Blick the text rapidly." }
     style_method! { reverse, reverse, true, "Spawn the text and background colors." }
     style_method! { crossed_out, crossed_out, true, "Cross the text." }
 
@@ -174,6 +201,7 @@ impl Style {
     /// Render text with this style
     pub fn render(&self, text: impl AsRef<str>) -> String {
         let mut result = String::new();
+        let cols = terminal_size().unwrap().0 as usize;
 
         if self.bold {
             result.push_str("\x1b[1m");
@@ -189,8 +217,8 @@ impl Style {
         }
         if let Some(speed) = &self.blink {
             match speed {
-                BlinkSpeed::Slow => result.push_str("\x1b[5m"),
-                BlinkSpeed::Rapid => result.push_str("\x1b[6m"),
+                Blink::Slow => result.push_str("\x1b[5m"),
+                Blink::Rapid => result.push_str("\x1b[6m"),
             }
         }
         if self.reverse {
@@ -210,7 +238,16 @@ impl Style {
             Self::write_underline_color(&mut result, color);
         }
 
-        result.push_str(text.as_ref());
+        let text = text.as_ref();
+        let len = visible_length(&text);
+
+        match self.align {
+            Align::Left => {}
+            Align::Center => result.push_str(&" ".repeat(cols / 2 - len / 2)),
+            Align::Right => result.push_str(&" ".repeat(cols - len)),
+        }
+
+        result.push_str(text);
         result.push_str("\x1b[0m"); // Reset style
         result
     }
@@ -288,5 +325,85 @@ impl Style {
             Color::Rgb { r, g, b } => write!(f, "\x1b[58;2;{};{};{}m", r, g, b).unwrap(),
             Color::AnsiValue(v) => write!(f, "\x1b[58;5;{}m", v).unwrap(),
         }
+    }
+}
+
+/// The length of a string excluding the ANSI codes.
+fn visible_length(input: &str) -> usize {
+    let mut in_escape_code = false;
+    let mut length = 0;
+
+    for c in input.chars() {
+        match c {
+            '\x1b' => {
+                // Start of escape sequence
+                in_escape_code = true;
+            }
+            'm' if in_escape_code => {
+                // End of escape sequence
+                in_escape_code = false;
+            }
+            _ if !in_escape_code => {
+                // Count character if it's not in an escape sequence
+                length += 1;
+            }
+            _ => {}
+        }
+    }
+
+    length
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_no_ansi_codes() {
+        let input = "Hello, world!";
+        let result = visible_length(input);
+        assert_eq!(result, 13);
+    }
+
+    #[test]
+    fn test_simple_ansi_code() {
+        let input = "\x1b[31mHello\x1b[0m, world!";
+        let result = visible_length(input);
+        assert_eq!(result, 13);
+    }
+
+    #[test]
+    fn test_multiple_ansi_codes() {
+        let input = "\x1b[31mHello\x1b[0m, \x1b[1mworld\x1b[0m!";
+        let result = visible_length(input);
+        assert_eq!(result, 13);
+    }
+
+    #[test]
+    fn test_only_ansi_codes() {
+        let input = "\x1b[31m\x1b[1m\x1b[0m";
+        let result = visible_length(input);
+        assert_eq!(result, 0);
+    }
+
+    #[test]
+    fn test_empty_string() {
+        let input = "";
+        let result = visible_length(input);
+        assert_eq!(result, 0);
+    }
+
+    #[test]
+    fn test_ansi_codes_in_the_middle() {
+        let input = "Hello, \x1b[31mworld\x1b[0m!";
+        let result = visible_length(input);
+        assert_eq!(result, 13);
+    }
+
+    #[test]
+    fn test_ansi_codes_at_the_end() {
+        let input = "Hello, world\x1b[31m!\x1b[0m";
+        let result = visible_length(input);
+        assert_eq!(result, 13);
     }
 }

@@ -92,7 +92,6 @@
 //! [bubbletea]: https://github.com/charmbracelet/bubbletea
 
 #![deny(missing_docs)]
-#![expect(missing_docs)]
 
 use crossterm::{
     cursor::MoveTo,

@@ -26,7 +26,9 @@ pub struct Style {
 /// The speed of text blinking for [`Style::blink`].
 #[derive(Debug, Clone)]
 pub enum BlinkSpeed {
+    /// Less than 150 times per minute.
     Slow,
+    /// Greater than 150 times per minute.
     Rapid,
 }
 

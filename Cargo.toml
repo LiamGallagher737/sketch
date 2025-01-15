@@ -2,6 +2,14 @@
 name = "sketch"
 version = "0.1.0"
 edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "A Rust TUI library inspired by bubbletea"
+repository = "https://github.com/LiamGallagher737/sketch"
+authors = ["Liam Gallagher <liam@liamgallagher.dev>"]
+readme = "README.md"
+exclude = [".github", "flake.*"]
+keywords = ["tui", "terminal", "mvu"]
+categories = ["command-line-interface"]
 
 [features]
 default = ["paste"]

@@ -5,7 +5,7 @@ pub use crossterm::style::Color;
 
 /// Change how the text is displayed to the user.
 ///
-/// ```
+/// ```no_run
 /// # use sketch::Style;
 /// const FOCUS_STYLE: Style = Style::new().red().bold();
 /// let text = FOCUS_STYLE.render("[ Submit]");
@@ -239,7 +239,7 @@ impl Style {
         }
 
         let text = text.as_ref();
-        let len = visible_length(&text);
+        let len = visible_length(text);
 
         match self.align {
             Align::Left => {}

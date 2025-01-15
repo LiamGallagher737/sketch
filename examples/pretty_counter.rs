@@ -17,7 +17,7 @@ impl Model for Counter {
     fn update(mut self, msg: &Msg) -> (Self, Option<Msg>) {
         if let Some(key) = msg.cast::<Key>() {
             match key.code {
-                KeyCode::Enter => self.count += 1,
+                KeyCode::Enter if key.is_press() => self.count += 1,
                 KeyCode::Char('q') => return (self, Some(Msg::new(Quit))),
                 KeyCode::Char('c') if key.with_control() => return (self, Some(Msg::new(Quit))),
                 _ => {}
